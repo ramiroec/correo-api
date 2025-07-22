@@ -1,0 +1,147 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const db = require('./conexionDB');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+
+console.log('🚀 Servidor inicializando...');
+
+// Configurar el transporte de correo (puedes usar Gmail o Mailtrap para pruebas)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'TUCORREO@gmail.com',
+    pass: 'TUPASSWORD'
+  }
+});
+
+// Agregar correo a la lista
+app.post('/agregar', (req, res) => {
+  const { email } = req.body;
+  console.log('📥 Agregando correo:', email);
+
+  db.run('INSERT OR IGNORE INTO correos (email) VALUES (?)', [email], function (err) {
+    if (err) {
+      console.error('❌ Error al insertar email:', err.message);
+      return res.status(500).send('Error al guardar email.');
+    }
+    console.log('✅ Email guardado con ID:', this.lastID);
+    res.send('Email agregado.');
+  });
+});
+
+// Enviar correo a todos
+app.post('/enviar', (req, res) => {
+  const { asunto, cuerpo } = req.body;
+  console.log('📨 Enviando email con asunto:', asunto);
+
+  db.all('SELECT email FROM correos', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener correos:', err.message);
+      return res.status(500).send('Error al obtener correos.');
+    }
+
+    const emails = rows.map(row => row.email);
+    console.log('📬 Correos encontrados:', emails);
+
+    const mailOptions = {
+      from: 'TUCORREO@gmail.com',
+      to: emails.join(','),
+      subject: asunto,
+      text: cuerpo
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('❌ Error al enviar correo:', error);
+        return res.status(500).send('Error al enviar correo.');
+      } else {
+        console.log('✅ Correo enviado:', info.response);
+
+        db.run('INSERT INTO envios (fecha, asunto, cuerpo) VALUES (?, ?, ?)',
+          [new Date().toISOString(), asunto, cuerpo], (err) => {
+            if (err) {
+              console.error('❌ Error al guardar envío:', err.message);
+            } else {
+              console.log('📦 Envío registrado en la base de datos.');
+            }
+          });
+
+        res.send('Correo enviado a todos.');
+      }
+    });
+  });
+});
+
+// Ver historial de envíos
+app.get('/envios', (req, res) => {
+  db.all('SELECT * FROM envios ORDER BY fecha DESC', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener envíos:', err.message);
+      return res.status(500).send('Error al obtener envíos.');
+    }
+    console.log('📜 Historial de envíos obtenido.');
+    res.json(rows);
+  });
+});
+
+// Listar todos los correos
+app.get('/correos', (req, res) => {
+  db.all('SELECT email FROM correos', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener correos:', err.message);
+      return res.status(500).send('Error al obtener correos.');
+    }
+    res.json(rows);
+  });
+});
+
+// Obtener un correo por ID
+app.get('/correos/:id', (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT * FROM correos WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      console.error('❌ Error al obtener correo:', err.message);
+      return res.status(500).send('Error al obtener correo.');
+    }
+    if (!row) return res.status(404).send('Correo no encontrado.');
+    res.json(row);
+  });
+});
+
+// Actualizar un correo
+app.put('/correos/:id', (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+  db.run('UPDATE correos SET email = ? WHERE id = ?', [email, id], function (err) {
+    if (err) {
+      console.error('❌ Error al actualizar correo:', err.message);
+      return res.status(500).send('Error al actualizar correo.');
+    }
+    if (this.changes === 0) return res.status(404).send('Correo no encontrado.');
+    res.send('Correo actualizado.');
+  });
+});
+
+// Eliminar un correo
+app.delete('/correos/:id', (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM correos WHERE id = ?', [id], function (err) {
+    if (err) {
+      console.error('❌ Error al eliminar correo:', err.message);
+      return res.status(500).send('Error al eliminar correo.');
+    }
+    if (this.changes === 0) return res.status(404).send('Correo no encontrado.');
+    res.send('Correo eliminado.');
+  });
+});
+
+// Iniciar servidor
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
+});
