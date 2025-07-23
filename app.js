@@ -158,10 +158,12 @@ app.delete('/correos/:id', (req, res) => {
 // Configura almacenamiento de imágenes
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Carpeta donde se guardan las imágenes
+    cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    // Elimina espacios y caracteres especiales del nombre original
+    const originalName = file.originalname.replace(/\s+/g, '_');
+    cb(null, Date.now() + '-' + originalName);
   }
 });
 const upload = multer({ storage });
