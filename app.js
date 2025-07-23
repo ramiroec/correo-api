@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const db = require('./conexionDB');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -152,6 +154,36 @@ app.delete('/correos/:id', (req, res) => {
     res.send('Correo eliminado.');
   });
 });
+
+// Configura almacenamiento de imágenes
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Carpeta donde se guardan las imágenes
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
+
+// Endpoint para subir imágenes
+app.post('/upload', upload.single('image'), (req, res) => {
+  console.log('🖼️ Intentando subir imagen...');
+  if (!req.file) {
+    console.error('❌ No se subió ninguna imagen');
+    return res.status(400).json({ error: 'No se subió ninguna imagen' });
+  }
+  console.log('✅ Imagen subida:', req.file);
+
+  // JSON que se envía a TinyMCE
+  const responseJson = { location: `http://localhost:3000/uploads/${req.file.filename}` };
+  console.log('📤 JSON enviado al frontend:', responseJson);
+
+  res.json(responseJson);
+});
+
+// Servir archivos estáticos de la carpeta uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Iniciar servidor
 const PORT = 3000;
