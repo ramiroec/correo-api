@@ -175,8 +175,8 @@ app.post('/upload', upload.single('image'), (req, res) => {
   }
   console.log('✅ Imagen subida:', req.file);
 
-  // JSON que se envía a TinyMCE
-  const responseJson = { location: `http://localhost:3000/uploads/${req.file.filename}` };
+  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  const responseJson = { location: imageUrl };
   console.log('📤 JSON enviado al frontend:', responseJson);
 
   res.json(responseJson);
