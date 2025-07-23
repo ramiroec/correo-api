@@ -14,8 +14,8 @@ console.log('🚀 Servidor inicializando...');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'TUCORREO@gmail.com',
-    pass: 'TUPASSWORD'
+    user: 'ramiroec2@gmail.com',
+    pass: 'aaru cwxn ofjy lbfc'   
   }
 });
 
@@ -49,10 +49,23 @@ app.post('/enviar', (req, res) => {
     console.log('📬 Correos encontrados:', emails);
 
     const mailOptions = {
-      from: 'TUCORREO@gmail.com',
+      from: 'ramiroec2@gmail.com', // Debe coincidir con el usuario autenticado
       to: emails.join(','),
       subject: asunto,
-      text: cuerpo
+      html: `
+        <div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 32px;">
+          <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+            <h2 style="color: #2a7ae2;">${asunto}</h2>
+            <div>${cuerpo}</div>
+            <hr style="margin: 32px 0;">
+            <div style="text-align: center; color: #888; font-size: 13px;">
+              <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="48" style="margin-bottom: 8px;" />
+              <br>
+              Este correo fue enviado con <b>Correo Masivo</b>
+            </div>
+          </div>
+        </div>
+      `
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -91,7 +104,7 @@ app.get('/envios', (req, res) => {
 
 // Listar todos los correos
 app.get('/correos', (req, res) => {
-  db.all('SELECT email FROM correos', [], (err, rows) => {
+  db.all('SELECT * FROM correos', [], (err, rows) => {
     if (err) {
       console.error('❌ Error al obtener correos:', err.message);
       return res.status(500).send('Error al obtener correos.');
