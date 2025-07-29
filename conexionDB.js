@@ -1,43 +1,34 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { createClient } = require('@libsql/client');
 
-const dbPath = path.join(__dirname, 'emails.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Error al conectar con la base de datos:', err.message);
-  } else {
-    console.log('✅ Conexión a SQLite establecida.');
-  }
+const db = createClient({
+  url: 'libsql://emails-ramiroec.aws-us-east-1.turso.io', // Cambia esto por tu URL real
+  authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTM3NjAyMDYsImlkIjoiNTMwMzQ1MGItOTA0My00MjY0LTkzZmYtNzc1MjMxNWVlNmI0IiwicmlkIjoiNzg3Mzc2Y2YtYmQ2NS00MmU5LWJlY2YtNDJjY2VkMzQwMzE0In0.tSDJvlaASTx1THL99Mr9vROwLhc56_ioanRSTELI-o5ziQ6Czzeoju0TZ87j3NiPGeEFMzHO8JgbBwDbbLigBw', // Cambia esto por tu token real
 });
 
 // Crear tabla de correos
-db.run(`
+db.execute(`
   CREATE TABLE IF NOT EXISTS correos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE
   )
-`, (err) => {
-  if (err) {
-    console.error('❌ Error al crear tabla correos:', err.message);
-  } else {
-    console.log('✅ Tabla "correos" verificada/creada.');
-  }
+`).then(() => {
+  console.log('✅ Tabla "correos" verificada/creada.');
+}).catch((err) => {
+  console.error('❌ Error al crear tabla correos:', err.message);
 });
 
 // Crear tabla de envíos
-db.run(`
+db.execute(`
   CREATE TABLE IF NOT EXISTS envios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fecha TEXT NOT NULL,
     asunto TEXT NOT NULL,
     cuerpo TEXT NOT NULL
   )
-`, (err) => {
-  if (err) {
-    console.error('❌ Error al crear tabla envios:', err.message);
-  } else {
-    console.log('✅ Tabla "envios" verificada/creada.');
-  }
+`).then(() => {
+  console.log('✅ Tabla "envios" verificada/creada.');
+}).catch((err) => {
+  console.error('❌ Error al crear tabla envios:', err.message);
 });
 
 module.exports = db;
