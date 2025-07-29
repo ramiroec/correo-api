@@ -1,3 +1,15 @@
+// conexionDB.js
+const { createClient } = require('@libsql/client');
+
+const db = createClient({
+  url: 'libsql://your-db-name.turso.io', // reemplaza con tu URL real
+  authToken: 'your-auth-token',         // reemplaza con tu token real
+});
+
+module.exports = db;
+
+
+/*
 const { createClient } = require('@libsql/client');
 
 const db = createClient({
@@ -32,3 +44,4 @@ db.execute(`
 });
 
 module.exports = db;
+*/
