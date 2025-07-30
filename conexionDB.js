@@ -1,9 +1,13 @@
-const { createClient } = require('@libsql/client');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
-const db = createClient({
-  url: 'libsql://emails-ramiroec.aws-us-east-1.turso.io',
-  authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTM3NjAyMDYsImlkIjoiNTMwMzQ1MGItOTA0My00MjY0LTkzZmYtNzc1MjMxNWVlNmI0IiwicmlkIjoiNzg3Mzc2Y2YtYmQ2NS00MmU5LWJlY2YtNDJjY2VkMzQwMzE0In0.tSDJvlaASTx1THL99Mr9vROwLhc56_ioanRSTELI-o5ziQ6Czzeoju0TZ87j3NiPGeEFMzHO8JgbBwDbbLigBw',
-  syncUrl: undefined, // 👈 esto evita que cargue sqlite local
+const dbPath = path.join(__dirname, 'emails.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('❌ Error al conectar con la base de datos:', err.message);
+  } else {
+    console.log('✅ Conexión a SQLite establecida.');
+  }
 });
 
 module.exports = db;

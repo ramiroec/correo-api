@@ -1,4 +1,3 @@
-// --- servidor.js adaptado para Turso ---
 const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./conexionDB');
@@ -13,36 +12,46 @@ app.use(bodyParser.json());
 
 console.log('🚀 Servidor inicializando...');
 
+// Configurar el transporte de correo (puedes usar Gmail o Mailtrap para pruebas)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'ramiroec2@gmail.com',
-    pass: 'aaru cwxn ofjy lbfc'
+    pass: 'aaru cwxn ofjy lbfc'   
   }
 });
 
-app.post('/agregar', async (req, res) => {
+// Agregar correo a la lista
+app.post('/agregar', (req, res) => {
   const { email } = req.body;
-  try {
-    await db.execute({
-      sql: 'INSERT OR IGNORE INTO correos (email) VALUES (?)',
-      args: [email]
-    });
+  console.log('📥 Agregando correo:', email);
+
+  db.run('INSERT OR IGNORE INTO correos (email) VALUES (?)', [email], function (err) {
+    if (err) {
+      console.error('❌ Error al insertar email:', err.message);
+      return res.status(500).send('Error al guardar email.');
+    }
+    console.log('✅ Email guardado con ID:', this.lastID);
     res.send('Email agregado.');
-  } catch (err) {
-    console.error('❌ Error al insertar email:', err.message);
-    res.status(500).send('Error al guardar email.');
-  }
+  });
 });
 
-app.post('/enviar', async (req, res) => {
+// Enviar correo a todos
+app.post('/enviar', (req, res) => {
   const { asunto, cuerpo } = req.body;
-  try {
-    const result = await db.execute('SELECT email FROM correos');
-    const emails = result.rows.map(row => row.email);
+  console.log('📨 Enviando email con asunto:', asunto);
+
+  db.all('SELECT email FROM correos', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener correos:', err.message);
+      return res.status(500).send('Error al obtener correos.');
+    }
+
+    const emails = rows.map(row => row.email);
+    console.log('📬 Correos encontrados:', emails);
 
     const mailOptions = {
-      from: 'ramiroec2@gmail.com',
+      from: 'ramiroec2@gmail.com', // Debe coincidir con el usuario autenticado
       to: emails.join(','),
       subject: asunto,
       html: `
@@ -61,107 +70,124 @@ app.post('/enviar', async (req, res) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
-    await db.execute({
-      sql: 'INSERT INTO envios (fecha, asunto, cuerpo) VALUES (?, ?, ?)',
-      args: [new Date().toISOString(), asunto, cuerpo]
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('❌ Error al enviar correo:', error);
+        return res.status(500).send('Error al enviar correo.');
+      } else {
+        console.log('✅ Correo enviado:', info.response);
+
+        db.run('INSERT INTO envios (fecha, asunto, cuerpo) VALUES (?, ?, ?)',
+          [new Date().toISOString(), asunto, cuerpo], (err) => {
+            if (err) {
+              console.error('❌ Error al guardar envío:', err.message);
+            } else {
+              console.log('📦 Envío registrado en la base de datos.');
+            }
+          });
+
+        res.send('Correo enviado a todos.');
+      }
     });
-
-    res.send('Correo enviado a todos.');
-  } catch (err) {
-    console.error('❌ Error al enviar correo o guardar envío:', err.message);
-    res.status(500).send('Error al enviar correo.');
-  }
+  });
 });
 
-app.get('/envios', async (req, res) => {
-  try {
-    const result = await db.execute('SELECT * FROM envios ORDER BY fecha DESC');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('❌ Error al obtener envíos:', err.message);
-    res.status(500).send('Error al obtener envíos.');
-  }
+// Ver historial de envíos
+app.get('/envios', (req, res) => {
+  db.all('SELECT * FROM envios ORDER BY fecha DESC', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener envíos:', err.message);
+      return res.status(500).send('Error al obtener envíos.');
+    }
+    console.log('📜 Historial de envíos obtenido.');
+    res.json(rows);
+  });
 });
 
-app.get('/correos', async (req, res) => {
-  try {
-    const result = await db.execute('SELECT * FROM correos');
-    res.json(result.rows);
-  } catch (err) {
-    console.error('❌ Error al obtener correos:', err.message);
-    res.status(500).send('Error al obtener correos.');
-  }
+// Listar todos los correos
+app.get('/correos', (req, res) => {
+  db.all('SELECT * FROM correos', [], (err, rows) => {
+    if (err) {
+      console.error('❌ Error al obtener correos:', err.message);
+      return res.status(500).send('Error al obtener correos.');
+    }
+    res.json(rows);
+  });
 });
 
-app.get('/correos/:id', async (req, res) => {
+// Obtener un correo por ID
+app.get('/correos/:id', (req, res) => {
   const { id } = req.params;
-  try {
-    const result = await db.execute({
-      sql: 'SELECT * FROM correos WHERE id = ?',
-      args: [id]
-    });
-    const row = result.rows[0];
+  db.get('SELECT * FROM correos WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      console.error('❌ Error al obtener correo:', err.message);
+      return res.status(500).send('Error al obtener correo.');
+    }
     if (!row) return res.status(404).send('Correo no encontrado.');
     res.json(row);
-  } catch (err) {
-    console.error('❌ Error al obtener correo:', err.message);
-    res.status(500).send('Error al obtener correo.');
-  }
+  });
 });
 
-app.put('/correos/:id', async (req, res) => {
+// Actualizar un correo
+app.put('/correos/:id', (req, res) => {
   const { id } = req.params;
   const { email } = req.body;
-  try {
-    const result = await db.execute({
-      sql: 'UPDATE correos SET email = ? WHERE id = ?',
-      args: [email, id]
-    });
-    if (result.rowsAffected === 0) return res.status(404).send('Correo no encontrado.');
+  db.run('UPDATE correos SET email = ? WHERE id = ?', [email, id], function (err) {
+    if (err) {
+      console.error('❌ Error al actualizar correo:', err.message);
+      return res.status(500).send('Error al actualizar correo.');
+    }
+    if (this.changes === 0) return res.status(404).send('Correo no encontrado.');
     res.send('Correo actualizado.');
-  } catch (err) {
-    console.error('❌ Error al actualizar correo:', err.message);
-    res.status(500).send('Error al actualizar correo.');
-  }
+  });
 });
 
-app.delete('/correos/:id', async (req, res) => {
+// Eliminar un correo
+app.delete('/correos/:id', (req, res) => {
   const { id } = req.params;
-  try {
-    const result = await db.execute({
-      sql: 'DELETE FROM correos WHERE id = ?',
-      args: [id]
-    });
-    if (result.rowsAffected === 0) return res.status(404).send('Correo no encontrado.');
+  db.run('DELETE FROM correos WHERE id = ?', [id], function (err) {
+    if (err) {
+      console.error('❌ Error al eliminar correo:', err.message);
+      return res.status(500).send('Error al eliminar correo.');
+    }
+    if (this.changes === 0) return res.status(404).send('Correo no encontrado.');
     res.send('Correo eliminado.');
-  } catch (err) {
-    console.error('❌ Error al eliminar correo:', err.message);
-    res.status(500).send('Error al eliminar correo.');
-  }
+  });
 });
 
+// Configura almacenamiento de imágenes
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
+    // Elimina espacios y caracteres especiales del nombre original
     const originalName = file.originalname.replace(/\s+/g, '_');
     cb(null, Date.now() + '-' + originalName);
   }
 });
 const upload = multer({ storage });
 
+// Endpoint para subir imágenes
 app.post('/upload', upload.single('image'), (req, res) => {
+  console.log('🖼️ Intentando subir imagen...');
   if (!req.file) {
+    console.error('❌ No se subió ninguna imagen');
     return res.status(400).json({ error: 'No se subió ninguna imagen' });
   }
+  console.log('✅ Imagen subida:', req.file);
+
   const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  res.json({ location: imageUrl });
+  const responseJson = { location: imageUrl };
+  console.log('📤 JSON enviado al frontend:', responseJson);
+
+  res.json(responseJson);
 });
 
+// Servir archivos estáticos de la carpeta uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Iniciar servidor
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
