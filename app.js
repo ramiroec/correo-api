@@ -57,7 +57,6 @@ app.post('/enviar', (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 32px;">
           <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
-            <h2 style="color: #2a7ae2;">${asunto}</h2>
             <div>${cuerpo}</div>
             <hr style="margin: 32px 0;">
             <div style="text-align: center; color: #888; font-size: 13px;">
