@@ -59,10 +59,10 @@ app.post('/enviar', (req, res) => {
           <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
             <div>${cuerpo}</div>
             <hr style="margin: 32px 0;">
-            <div style="text-align: center; color: #888; font-size: 13px;">
-              <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="48" style="margin-bottom: 8px;" />
+            <div style="text-align: center; color: #888; font-size: 11px;">
+              <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="24" style="margin-bottom: 4px;" />
               <br>
-              Este correo fue enviado con <b>Correo Masivo</b>
+              Este correo forma parte de una comunicación masiva enviada con fines informativos.
             </div>
           </div>
         </div>
