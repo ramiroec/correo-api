@@ -15,12 +15,18 @@ app.use(bodyParser.json());
 console.log('🚀 Servidor inicializando...');
 
 // Configurar transporte de correo
+// Configurar transporte de correo con opciones mejoradas
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'labdiazgill@gmail.com',
     pass: 'xkxn voir zxiz vsza'
-  }
+  },
+  pool: true, // Usar conexiones persistentes
+  maxConnections: 5, // Número máximo de conexiones concurrentes
+  maxMessages: 100, // Máximo de mensajes por conexión
+  rateLimit: 10, // Mensajes por segundo
+  rateDelta: 1000 // Intervalo de tiempo para rateLimit
 });
 
 // Configuración de Cloudinary
@@ -44,49 +50,62 @@ app.post('/agregar', async (req, res) => {
   }
 });
 
-// Enviar correo a todos
+// En el endpoint /enviar, modificar para enviar por lotes:
 app.post('/enviar', async (req, res) => {
   const { asunto, cuerpo } = req.body;
   console.log('📨 Enviando email con asunto:', asunto);
 
   try {
     const result = await db.query('SELECT email FROM correos');
-    const emails = result.rows.map(row => row.email);
-    console.log('📬 Correos encontrados:', emails);
+    const allEmails = result.rows.map(row => row.email);
+    console.log('📬 Total de correos encontrados:', allEmails.length);
 
-    const mailOptions = {
-      from: 'labdiazgill@gmail.com',
-      to: emails.join(','),
-      subject: asunto,
-      html: `
-        <div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 32px;">
-          <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
-            <div>${cuerpo}</div>
-            <hr style="margin: 32px 0;">
-            <div style="text-align: center; color: #888; font-size: 11px;">
-              <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="24" style="margin-bottom: 4px;" />
-              <br>
-              Este correo forma parte de una comunicación masiva enviada con fines informativos.
+    // Dividir en lotes de 50 correos
+    const batchSize = 50;
+    for (let i = 0; i < allEmails.length; i += batchSize) {
+      const batch = allEmails.slice(i, i + batchSize);
+      console.log(`✉️ Enviando lote ${i/batchSize + 1} a ${batch.length} destinatarios`);
+
+      const mailOptions = {
+        from: 'labdiazgill@gmail.com',
+        to: batch.join(','),
+        subject: asunto,
+        html: `
+          <div style="font-family: Arial, sans-serif; background: #f9f9f9; padding: 32px;">
+            <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+              <div>${cuerpo}</div>
+              <hr style="margin: 32px 0;">
+              <div style="text-align: center; color: #888; font-size: 11px;">
+                <img src="https://cdn-icons-png.flaticon.com/512/561/561127.png" alt="Correo" width="24" style="margin-bottom: 4px;" />
+                <br>
+                Este correo forma parte de una comunicación masiva enviada con fines informativos.
+              </div>
             </div>
           </div>
-        </div>
-      `
-    };
+        `
+      };
 
-    await transporter.sendMail(mailOptions);
-    console.log('✅ Correo enviado');
+      await transporter.sendMail(mailOptions);
+      console.log(`✅ Lote ${i/batchSize + 1} enviado`);
+      
+      // Pequeña pausa entre lotes para evitar bloqueos
+      if (i + batchSize < allEmails.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     await db.query(
       'INSERT INTO envios (fecha, asunto, cuerpo) VALUES ($1, $2, $3)',
       [new Date().toISOString(), asunto, cuerpo]
     );
 
-    res.send('Correo enviado a todos.');
+    res.send(`Correo enviado a todos los ${allEmails.length} destinatarios en ${Math.ceil(allEmails.length/batchSize)} lotes.`);
   } catch (err) {
     console.error('❌ Error al enviar correo:', err.message);
     res.status(500).send('Error al enviar correo.');
   }
 });
+
 
 // Ver historial de envíos
 app.get('/envios', async (req, res) => {
