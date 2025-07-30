@@ -16,8 +16,8 @@ console.log('🚀 Servidor inicializando...');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'ramiroec2@gmail.com',
-    pass: 'aaru cwxn ofjy lbfc'   
+    user: 'labdiazgill@gmail.com',
+    pass: 'xkxn voir zxiz vsza'   
   }
 });
 
@@ -51,7 +51,7 @@ app.post('/enviar', (req, res) => {
     console.log('📬 Correos encontrados:', emails);
 
     const mailOptions = {
-      from: 'ramiroec2@gmail.com', // Debe coincidir con el usuario autenticado
+      from: 'labdiazgill@gmail.com', // Debe coincidir con el usuario autenticado
       to: emails.join(','),
       subject: asunto,
       html: `
