@@ -1,46 +1,40 @@
 // crearDB.js
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Client } = require('pg');
 
-const dbPath = path.join(__dirname, 'emails.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Error al conectar con la base de datos:', err.message);
-    process.exit(1);
-  } else {
-    console.log('✅ Conexión a SQLite establecida.');
-    crearTablas();
-  }
+const client = new Client({
+  connectionString: 'postgresql://neondb_owner:npg_HG0rxUFWd3Ce@ep-autumn-breeze-ac80e1ox-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  ssl: { rejectUnauthorized: false } // Necesario para conexión SSL
 });
 
-function crearTablas() {
-  // Tabla de correos
-  db.run(`
-    CREATE TABLE IF NOT EXISTS correos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT NOT NULL UNIQUE
-    )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error al crear tabla correos:', err.message);
-    } else {
-      console.log('✅ Tabla "correos" verificada/creada.');
-    }
-  });
+async function crearTablas() {
+  try {
+    await client.connect();
+    console.log('✅ Conexión a PostgreSQL establecida.');
 
-  // Tabla de envíos
-  db.run(`
-    CREATE TABLE IF NOT EXISTS envios (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      fecha TEXT NOT NULL,
-      asunto TEXT NOT NULL,
-      cuerpo TEXT NOT NULL
-    )
-  `, (err) => {
-    if (err) {
-      console.error('❌ Error al crear tabla envios:', err.message);
-    } else {
-      console.log('✅ Tabla "envios" verificada/creada.');
-    }
-  });
+    // Crear tabla de correos
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS correos (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL UNIQUE
+      )
+    `);
+    console.log('✅ Tabla "correos" verificada/creada.');
+
+    // Crear tabla de envíos
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS envios (
+        id SERIAL PRIMARY KEY,
+        fecha TEXT NOT NULL,
+        asunto TEXT NOT NULL,
+        cuerpo TEXT NOT NULL
+      )
+    `);
+    console.log('✅ Tabla "envios" verificada/creada.');
+  } catch (err) {
+    console.error('❌ Error al crear tablas:', err.message);
+  } finally {
+    await client.end();
+  }
 }
+
+crearTablas();

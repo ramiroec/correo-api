@@ -1,13 +1,13 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+// db.js
+const { Pool } = require('pg');
 
-const dbPath = path.join(__dirname, 'emails.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Error al conectar con la base de datos:', err.message);
-  } else {
-    console.log('✅ Conexión a SQLite establecida.');
-  }
+const pool = new Pool({
+  connectionString: 'postgresql://neondb_owner:npg_HG0rxUFWd3Ce@ep-autumn-breeze-ac80e1ox-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  ssl: { rejectUnauthorized: false } // Para conexiones seguras (como Neon)
 });
 
-module.exports = db;
+pool.connect()
+  .then(() => console.log('✅ Conexión a PostgreSQL establecida.'))
+  .catch(err => console.error('❌ Error al conectar con PostgreSQL:', err.message));
+
+module.exports = pool;
