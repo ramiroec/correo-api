@@ -5,7 +5,6 @@ yarn-error.log
 .wwebjs_auth
 # Environment variables
 .env
-*.db
 # Logs
 logs
 *.log
