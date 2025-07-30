@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
 
 const app = express();
 app.use(cors());
@@ -20,6 +21,13 @@ const transporter = nodemailer.createTransport({
     user: 'labdiazgill@gmail.com',
     pass: 'xkxn voir zxiz vsza'
   }
+});
+
+// Configuración de Cloudinary
+cloudinary.config({
+  cloud_name: 'dehsi2ubm',
+  api_key: '534226953618942',
+  api_secret: 'yd1gRm1d4X2PbGxpfIS9wtUbI1s'
 });
 
 // Agregar correo
@@ -139,27 +147,33 @@ app.delete('/correos/:id', async (req, res) => {
   }
 });
 
-// Configura almacenamiento de imágenes
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    const originalName = file.originalname.replace(/\s+/g, '_');
-    cb(null, Date.now() + '-' + originalName);
-  }
-});
+// Multer para recibir archivos en memoria
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Subir imagen
-app.post('/upload', upload.single('image'), (req, res) => {
-  console.log('🖼️ Intentando subir imagen...');
+// Subir imagen a Cloudinary
+app.post('/upload', upload.single('image'), async (req, res) => {
+  console.log('🖼️ Intentando subir imagen a Cloudinary...');
   if (!req.file) return res.status(400).json({ error: 'No se subió ninguna imagen' });
 
-  const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-  res.json({ location: imageUrl });
+  try {
+    const result = await cloudinary.uploader.upload_stream(
+      { folder: 'correo-app' },
+      (error, result) => {
+        if (error) {
+          console.error('❌ Error al subir a Cloudinary:', error);
+          return res.status(500).json({ error: 'Error al subir imagen a Cloudinary' });
+        }
+        res.json({ location: result.secure_url });
+      }
+    );
+    // Escribir el buffer en el stream
+    result.end(req.file.buffer);
+  } catch (err) {
+    console.error('❌ Error general al subir a Cloudinary:', err);
+    res.status(500).json({ error: 'Error al subir imagen a Cloudinary' });
+  }
 });
-
-// Servir archivos estáticos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Iniciar servidor
 const PORT = 3000;
