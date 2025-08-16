@@ -35,8 +35,8 @@ console.log('🚀 Servidor inicializando...');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'labdiazgill@gmail.com',
-    pass: 'xkxn voir zxiz vsza'
+    user: 'ramiroec2@gmail.com',
+    pass: 'aaru cwxn ofjy lbfc'
   },
   pool: true,
   maxConnections: 5,
