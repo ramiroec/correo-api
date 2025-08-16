@@ -89,7 +89,7 @@ module.exports = function (db, transporter) {
                 console.log(`✉️ Enviando lote ${i / batchSize + 1}...`);
 
                 const mailOptions = {
-                    from: 'labdiazgill@gmail.com',
+                    from: 'ramiroec2@gmail.com',
                     to: batch.join(','),
                     subject: asunto,
                     html: `
